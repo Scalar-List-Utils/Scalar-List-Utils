@@ -244,6 +244,22 @@ static double MY_callrand(pTHX_ CV *randcv)
     return ret;
 }
 
+#define sv_to_cv(sv, subname) MY_sv_to_cv(aTHX_ sv, subname);
+static CV* MY_sv_to_cv(pTHX_ SV* sv, const char * const subname)
+{
+    GV *gv;
+    HV *stash;
+    CV *cv = sv_2cv(sv, &stash, &gv, 0);
+
+    if(cv == Nullcv)
+        croak("Not a subroutine reference");
+
+    if(!CvROOT(cv) && !CvXSUB(cv))
+        croak("Undefined subroutine in %s", subname);
+
+    return cv;
+}
+
 MODULE=List::Util       PACKAGE=List::Util
 
 void
@@ -531,10 +547,7 @@ CODE:
     GV *agv,*bgv,*gv;
     HV *stash;
     SV **args = &PL_stack_base[ax];
-    CV *cv    = sv_2cv(block, &stash, &gv, 0);
-
-    if(cv == Nullcv)
-        croak("Not a subroutine reference");
+    CV *cv    = sv_to_cv(block, ix ? "reductions" : "reduce");
 
     if(items <= 1) {
         if(ix)
@@ -624,10 +637,7 @@ CODE:
     GV *gv;
     HV *stash;
     SV **args = &PL_stack_base[ax];
-    CV *cv    = sv_2cv(block, &stash, &gv, 0);
-
-    if(cv == Nullcv)
-        croak("Not a subroutine reference");
+    CV *cv    = sv_to_cv(block, "first");
 
     if(items <= 1)
         XSRETURN_UNDEF;
@@ -699,10 +709,12 @@ PPCODE:
     GV *gv;
     HV *stash;
     SV **args = &PL_stack_base[ax];
-    CV *cv    = sv_2cv(block, &stash, &gv, 0);
-
-    if(cv == Nullcv)
-        croak("Not a subroutine reference");
+    CV *cv    = sv_to_cv(block,
+                         ix == 0 ? "none" :
+                         ix == 1 ? "all" :
+                         ix == 2 ? "any" :
+                         ix == 3 ? "notall" :
+                         "unknown 'any' alias");
 
     SAVESPTR(GvSV(PL_defgv));
 #ifdef dMULTICALL
@@ -927,7 +939,7 @@ PPCODE:
 {
     GV *agv,*bgv,*gv;
     HV *stash;
-    CV *cv    = sv_2cv(block, &stash, &gv, 0);
+    CV *cv    = sv_to_cv(block, "pairfirst");
     I32 ret_gimme = GIMME_V;
     int argi = 1; /* "shift" the block */
 
@@ -1007,7 +1019,7 @@ PPCODE:
 {
     GV *agv,*bgv,*gv;
     HV *stash;
-    CV *cv    = sv_2cv(block, &stash, &gv, 0);
+    CV *cv    = sv_to_cv(block, "pairgrep");
     I32 ret_gimme = GIMME_V;
 
     /* This function never returns more than it consumed in arguments. So we
@@ -1097,7 +1109,7 @@ PPCODE:
 {
     GV *agv,*bgv,*gv;
     HV *stash;
-    CV *cv    = sv_2cv(block, &stash, &gv, 0);
+    CV *cv    = sv_to_cv(block, "pairmap");
     SV **args_copy = NULL;
     I32 ret_gimme = GIMME_V;
 
