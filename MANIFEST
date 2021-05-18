@@ -24,6 +24,7 @@ t/maxstr.t
 t/mesh.t
 t/min.t
 t/minstr.t
+t/numstring.t
 t/openhan.t
 t/pair.t
 t/product.t
